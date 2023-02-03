@@ -17,15 +17,17 @@ class AppDrawer extends StatelessWidget{
           SizedBox(height: 8,),
           ListTile(
             leading: Icon(Icons.download),
-            title: Text("Download customer report"),
+            title: Text("Edit Invoices"),
             onTap: (){
-
+              Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx){
+                return DeleteOrEditInvoices("edit");
+              }));
             },
           ),
           SizedBox(height: 8,),
           ListTile(
-            leading: Icon(Icons.receipt_rounded),
-            title: Text("Visit report"),
+            leading: Icon(Icons.person),
+            title: Text("Show Customers"),
           ),
 
           SizedBox(height: 8,),

@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:fortline_admin_app/view/edit_invoices_form.dart';
+import 'package:fortline_admin_app/view/edit_invoices_provider.dart';
+import 'package:provider/provider.dart';
 
 import 'appdrawer.dart';
 
@@ -18,6 +21,7 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
     "Adj_Document_No","Adjustment_Type", "Delete"];
   List<String> _docIds = [];
   List<String> _itemsToBeDeletedOrEdited = [];
+  ValueNotifier<bool> checkBoxStatus = ValueNotifier<bool>(false);
   @override
   void initState() {
     // TODO: implement initState
@@ -199,16 +203,24 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
                 int rowIndex = 0;
                 List<QueryDocumentSnapshot<Map<String, dynamic>>> data = snapshot.data!.docs;
                 List<String> gridData = [];
+                List<ValueNotifier<bool>> valueNotifiers = [];
                 for(int i = 0; i < data.length; i++){
                   Map<String, dynamic> record = data[i].data();
                   for(int j = 0; j < _columns.length - 1; j++){
                     gridData.add((record[_columns[j]]).toString());
                   }
                 }
+                int noOfRowsForExtraColumn = (gridData.length / (_columns.length - 1)) as int;
+                int extraColumnIndex = _columns.length - 1;
+                for(int i = 0; i < noOfRowsForExtraColumn; i++){
+                  gridData.insert(extraColumnIndex, "check!box");
+                  extraColumnIndex = extraColumnIndex + _columns.length;
+                  valueNotifiers.add(ValueNotifier<bool>(false));
+                }
                 return Padding(
                   padding: const EdgeInsets.only(left: 5.0, right: 5.0),
                   child: GridView.builder(gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 8,mainAxisSpacing: 0.5,crossAxisSpacing: 0.5,childAspectRatio: 6.3,
+                    crossAxisCount: _columns.length,mainAxisSpacing: 0.5,crossAxisSpacing: 0.5,childAspectRatio: 6.3,
                   ), itemBuilder: (ctx, pos){
                     Widget widget;
                     if(pos % _columns.length == 0){
@@ -218,13 +230,32 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
                       widget = Container(
                         child: Padding(
                           padding: const EdgeInsets.only(left: 8.0, top: 2),
-                          child: (pos + 1) % _columns.length == 0 ? Checkbox(value: false, onChanged: (val){
-                            if(val!){
-                              _itemsToBeDeletedOrEdited.add(_docIds[rowIndex]);
-                            }
-                            else{
-                              _itemsToBeDeletedOrEdited.removeAt(rowIndex);
-                            }
+                          child: gridData[pos] == "check!box" ? ValueListenableBuilder<bool>(valueListenable: valueNotifiers[pos % (_columns.length - 1)], builder: (ctx, v, child){
+                            return Switch(value: valueNotifiers[pos % (_columns.length - 1)].value, onChanged: (val){
+                              print("inside switch $val");
+
+                              if(val){
+                                print(pos);
+                                print(pos % (_columns.length - 1));
+                                if(this.widget._mode == "delete") {
+                                  _itemsToBeDeletedOrEdited.add(
+                                      _docIds[rowIndex]);
+                                }
+                                else{
+                                  Provider.of<EditInvoicesProvider>(context,listen: false).addDocId(_docIds[pos % (_columns.length - 1)]);
+                                }
+                              }
+                              else{
+                                if(this.widget._mode == "delete") {
+                                  _itemsToBeDeletedOrEdited.removeAt(rowIndex);
+                                }
+                                else{
+                                  Provider.of<EditInvoicesProvider>(context,listen: false).removeId(_docIds[pos % (_columns.length - 1)]);
+                                }
+                              }
+                              valueNotifiers[pos % (_columns.length - 1)].value = val;
+                              print("checkboxstatus : ${valueNotifiers[pos % (_columns.length - 1)].value}");
+                            });
                           }) : Text(gridData[pos]),
                         ),
                         decoration: BoxDecoration(
@@ -236,13 +267,31 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
                       widget = Container(
                         child: Padding(
                           padding: const EdgeInsets.only(left: 8.0, top: 2),
-                          child: (pos + 1) % _columns.length == 0 ? Checkbox(value: false, onChanged: (val){
-                            if(val!){
-                              _itemsToBeDeletedOrEdited.add(_docIds[rowIndex]);
-                            }
-                            else{
-                              _itemsToBeDeletedOrEdited.removeAt(rowIndex);
-                            }
+                          child: gridData[pos] == "check!box" ? ValueListenableBuilder<bool>(valueListenable: valueNotifiers[pos % (_columns.length - 1)], builder: (ctx, v, child){
+                            return Switch(value: valueNotifiers[pos % (_columns.length - 1)].value, onChanged: (val){
+                              print("inside switch");
+                              if(val){
+                                print(pos);
+                                print(pos % (_columns.length - 1));
+                                if(this.widget._mode == "delete") {
+                                  _itemsToBeDeletedOrEdited.add(
+                                      _docIds[rowIndex]);
+                                }
+                                else{
+                                  Provider.of<EditInvoicesProvider>(context,listen: false).addDocId(_docIds[pos % (_columns.length - 1)]);
+                                }
+                              }
+                              else{
+                                if(this.widget._mode == "delete") {
+                                  _itemsToBeDeletedOrEdited.removeAt(rowIndex);
+                                }
+                                else{
+                                  Provider.of<EditInvoicesProvider>(context,listen: false).removeId(_docIds[pos % (_columns.length - 1)]);
+                                }
+                              }
+                              valueNotifiers[pos % (_columns.length - 1)].value = val;
+                              print("checkboxstatus : ${valueNotifiers[pos % (_columns.length - 1)].value}");
+                            });
                           }) : Text(gridData[pos]),
                         ),
                         decoration: BoxDecoration(
@@ -281,10 +330,17 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
                       for(int i = 0; i < _itemsToBeDeletedOrEdited.length; i++){
                         await ref.doc(_itemsToBeDeletedOrEdited[i]).delete();
                       }
+                      Navigator.of(context).pop();
+                      setState(() {
+                        _itemsToBeDeletedOrEdited = [];
+                      });
                     }, child: Text("Ok")),
                     TextButton(
                       onPressed: (){
                         Navigator.of(context).pop();
+                        setState(() {
+                          _itemsToBeDeletedOrEdited = [];
+                        });
                       },
                       child: Text("Cancel"),
                     )
@@ -292,6 +348,11 @@ class _DeleteOrEditInvoicesState extends State<DeleteOrEditInvoices> {
                 );
               });
             }
+          }
+          else{
+            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx){
+              return EditInvoiceForm();
+            }));
           }
         },
       ),
