@@ -23,6 +23,7 @@ class _EditInvoiceFormState extends State<EditInvoiceForm> {
   String _adjustmentDocumentNo = "";
   final _formKey = GlobalKey<FormState>();
   String _adjDate = "";
+  TextEditingController _rebateController = TextEditingController();
   var _invoiceFuture;
   List<QueryDocumentSnapshot<Map<String, dynamic>>>? _invoices;
   @override
@@ -75,8 +76,9 @@ class _EditInvoiceFormState extends State<EditInvoiceForm> {
                                 print("doc id $docId found");
                                 invoice = _invoices![i].data();
                                 referenceIndex = i;
+                                _customers.add(_invoices![i].data()["Customer_Id"]);
+                                _rebateController.text = invoice["Rebate"].toString();
                               }
-                              _customers.add(_invoices![i].data()["Customer_Id"]);
                             }
                             return Form(
                               key: _formKey,
@@ -185,10 +187,10 @@ class _EditInvoiceFormState extends State<EditInvoiceForm> {
                                   Flexible(fit: FlexFit.loose,child: Padding(padding: EdgeInsets.all(5),
                                     child: TextFormField(
                                       onSaved: (val){
-                                        _rebate = int.parse(val!);
+                                        _rebateController.text = val!;
                                       },
                                       keyboardType: TextInputType.number,
-                                      initialValue: invoice["Rebate"].toString(),
+                                      controller: _rebateController,
                                       decoration: InputDecoration(
                                         filled: true,
                                         fillColor: Color(0xfff6f7fa),
@@ -353,10 +355,17 @@ class _EditInvoiceFormState extends State<EditInvoiceForm> {
         "Invoice_Amount" : _invoiceAmount,
         "Customer_Id" : _customerId.text,
         "Adjustment_Type" : _adjustmentType,
-        "Rebate" : _rebate,
+        "Rebate" : _rebateController.text,
         "Adj_Document_No" : _adjustmentDocumentNo,
         "Adj_Document_Date" : _adjDate
       });
+      /*_invoiceDate = "";
+      _invoiceAmount = 0;
+      _customerId.text = "";
+      _adjustmentType = "";
+      _rebateController.text = "";
+      _adjustmentDocumentNo = "";
+      _adjDate = "";*/
   }
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>?> _getInvoices() async{
     try {
